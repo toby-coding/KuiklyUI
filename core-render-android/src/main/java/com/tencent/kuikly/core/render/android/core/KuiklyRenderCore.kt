@@ -21,6 +21,7 @@ import android.util.SparseArray
 import android.view.View
 import com.tencent.kuikly.core.render.android.IKuiklyRenderView
 import com.tencent.kuikly.core.render.android.IKuiklyRenderViewTreeUpdateListener
+import com.tencent.kuikly.core.render.android.adapter.KuiklyRenderLog
 import com.tencent.kuikly.core.render.android.const.KRExtConst
 import com.tencent.kuikly.core.render.android.context.IKotlinBridgeStatusListener
 import com.tencent.kuikly.core.render.android.context.KuiklyRenderContextMethod
@@ -28,6 +29,7 @@ import com.tencent.kuikly.core.render.android.context.KuiklyRenderNativeMethodCa
 import com.tencent.kuikly.core.render.android.context.IKuiklyRenderContextHandler
 import com.tencent.kuikly.core.render.android.context.KuiklyRenderNativeMethod
 import com.tencent.kuikly.core.render.android.context.KuiklyRenderJvmContextHandler
+import com.tencent.kuikly.core.render.android.context.nativeMethodCallCounts
 import com.tencent.kuikly.core.render.android.css.ktx.fifthArg
 import com.tencent.kuikly.core.render.android.css.ktx.fourthArg
 import com.tencent.kuikly.core.render.android.css.ktx.secondArg
@@ -37,6 +39,7 @@ import com.tencent.kuikly.core.render.android.css.ktx.isMainThread
 import com.tencent.kuikly.core.render.android.exception.IKuiklyRenderExceptionListener
 import com.tencent.kuikly.core.render.android.exception.ErrorReason
 import com.tencent.kuikly.core.render.android.exception.KRKotlinBizException
+import com.tencent.kuikly.core.render.android.expand.KuiklyRenderTracer
 import com.tencent.kuikly.core.render.android.export.KuiklyRenderCallback
 import com.tencent.kuikly.core.render.android.export.IKuiklyRenderModuleExport
 import com.tencent.kuikly.core.render.android.layer.KuiklyRenderLayerHandler
@@ -78,9 +81,14 @@ class KuiklyRenderCore(
     private var exceptionListener: IKuiklyRenderExceptionListener? = null
 
     /**
-     * 正在销毁状态
+     * 布局View最大日志数
      */
-    private var isUIDestroying: Boolean = false
+    private var layoutViewLogCount = 0
+
+    /**
+     * 是否开启debug日志
+     */
+    private var debugLogEnable = false
 
     override fun init(
         renderView: IKuiklyRenderView,
@@ -90,22 +98,34 @@ class KuiklyRenderCore(
         assetsPath: String?,
         contextInitCallback: IKuiklyRenderContextInitCallback
     ) {
+        debugLogEnable = renderView.isDebugLogEnable()
+        val renderCoreInitTracer = KuiklyRenderTracer("KuiklyRenderCore.init")
         uiScheduler = KuiklyRenderCoreUIScheduler {
             // 同步主线程任务前，需要告诉KTV Core 去 layoutIfNeed, 避免viewFrame设置时机和创建view时机不同步
+            var layoutTracer: KuiklyRenderTracer? = null
+            if (debugLogEnable && layoutViewLogCount < LAYOUT_VIEW_MAX_LOG_COUNT) {
+                layoutTracer = KuiklyRenderTracer("layout View $layoutViewLogCount")
+                layoutViewLogCount++
+            }
             contextHandler?.call(
                 KuiklyRenderContextMethod.KuiklyRenderContextMethodLayoutView,
                 listOf(instanceId)
             )
+            layoutTracer?.end()
         }.apply {
             setRenderExceptionListener(exceptionListener)
+            setDebugLogEnable(debugLogEnable)
         }
         renderLayerHandler = KuiklyRenderLayerHandler().apply {
             init(renderView)
         }
         initNativeMethodRegisters()
         performOnContextQueue {
+            val initContextHandlerTracer = KuiklyRenderTracer("initContextHandler")
             initContextHandler(contextCode, url, params, contextInitCallback)
+            initContextHandlerTracer.end()
         }
+        renderCoreInitTracer.end()
     }
 
     override fun sendEvent(event: String, data: Map<String, Any>, shouldSync: Boolean) {
@@ -139,8 +159,10 @@ class KuiklyRenderCore(
     override fun getView(tag: Int): View? = renderLayerHandler?.getView(tag)
 
     override fun destroy() {
-        isUIDestroying = true
+        val destroyTracer = KuiklyRenderTracer("KuiklyRenderCore.destroy")
+        renderLayerHandler?.onDestroy()
         performOnContextQueue {
+            val destroyCallKotlinTracer = KuiklyRenderTracer("KuiklyRenderCore.destroy.performOnContextQueue")
             contextHandler?.call(
                 KuiklyRenderContextMethod.KuiklyRenderContextMethodDestroyInstance,
                 listOf(
@@ -148,21 +170,24 @@ class KuiklyRenderCore(
                 )
             )
             contextHandler?.destroy()
-            uiScheduler?.scheduleTask {
-                renderLayerHandler?.onDestroy()
-                uiScheduler?.destroy()
-            }
+            destroyCallKotlinTracer.end()
         }
+        uiScheduler?.destroy()
+        destroyTracer.end()
     }
 
     override fun syncFlushAllRenderTasks() {
+        val syncFlushTracer = KuiklyRenderTracer("KuiklyRenderCore.syncFlush")
         performOnContextQueue(sync = true) {
+            val performOnContextQueueTracer = KuiklyRenderTracer("KuiklyRenderCore.performOnContextQueue")
             uiScheduler?.performSyncMainQueueTasksBlockIfNeed(true)
             uiScheduler?.performOnMainQueueWithTask(sync = false) {
                 uiScheduler?.performMainThreadTaskWaitToSyncBlockIfNeed()
             }
+            performOnContextQueueTracer.end()
         }
         uiScheduler?.performMainThreadTaskWaitToSyncBlockIfNeed()
+        syncFlushTracer.end()
     }
 
     override fun performWhenViewDidLoad(task: KuiklyRenderCoreTask) {
@@ -312,6 +337,7 @@ class KuiklyRenderCore(
             initCallback.onFinish()
 
             initCallback.onCreateInstanceStart()
+            val tracer = KuiklyRenderTracer("createInstance")
             call(
                 KuiklyRenderContextMethod.KuiklyRenderContextMethodCreateInstance, listOf(
                     instanceId,
@@ -319,6 +345,7 @@ class KuiklyRenderCore(
                     params
                 )
             )
+            tracer.end()
             initCallback.onCreateInstanceFinish()
 
         }
@@ -328,6 +355,9 @@ class KuiklyRenderCore(
         method: KuiklyRenderNativeMethod,
         args: List<Any?>
     ): Any? {
+        if (debugLogEnable) {
+            ++nativeMethodCallCounts[method.value]
+        }
         val cb = nativeMethodRegistry[method.value]
         cb?.also {
             assert(!isMainThread())
@@ -393,6 +423,9 @@ class KuiklyRenderCore(
 
     private fun setRenderViewFrame(method: KuiklyRenderNativeMethod, args: List<Any?>): Any? {
         val frame = RectF(args.thirdArg(), args.fourthArg(), args.fifthArg(), args.sixthArg())
+        if (renderLayerHandler == null) {
+            KuiklyRenderLog.d("KuiklyRenderTracer", "setRenderViewFrame: renderLayerHandler is null, pagerId: $instanceId tag: ${args.secondArg<Int>()}")
+        }
         return renderLayerHandler?.setRenderViewFrame(args.secondArg(), frame)
     }
 
@@ -626,6 +659,7 @@ class KuiklyRenderCore(
     companion object {
         private var instanceIdProducer = 0L
         private const val SYNC_CALL_TYPE = 1
+        private const val LAYOUT_VIEW_MAX_LOG_COUNT = 10
     }
 
 }

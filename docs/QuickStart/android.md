@@ -190,7 +190,7 @@ object KRImageAdapter : IKRImageAdapter {
 
 }
 ```
-完成后，可通过示例中的``ImageAdapter基准测试``页面来验证功能正常，可能需要重载``IKRImageAdapter``的``getDrawableWidth``和``getDrawableHeight``方法调节渲染效果。
+完成后，可通过**模版工程**中的``ImageAdapter基准测试``页面来验证功能正常，可能需要重载``IKRImageAdapter``的``getDrawableWidth``和``getDrawableHeight``方法调节渲染效果。
 
 ### 实现日志适配器
 具体实现代码，请参考源码工程androidApp模块的``KRLogAdapter``类。
@@ -271,6 +271,38 @@ fun execOnSubThread(runnable: () -> Unit) {
     subThreadPoolExecutor.execute(runnable)
 }
 ```
+
+#### stackSize（线程栈大小配置）
+
+`IKRThreadAdapter` 接口还提供了 `stackSize()` 方法，用于配置 Kuikly 内部线程的栈大小，主要用于在 Compose 场景下避免 布局嵌套过深导致的`StackOverflowException`
+
+**实现示例**：
+
+基础实现（使用系统默认值）：
+```kotlin
+class KRThreadAdapter : IKRThreadAdapter {
+    // 使用系统默认线程大小（通常为1MB）（返回 0）
+    override fun stackSize(): Long = 0
+}
+```
+
+自定义栈大小（推荐用于 Compose 场景）：
+```kotlin
+class KRThreadAdapter : IKRThreadAdapter {
+    /**
+     * 在 Compose 场景下，建议使用 8MB 或更大的栈大小以避免 StackOverflowException
+     */
+    override fun stackSize(): Long {
+        return 8 * 1024 * 1024  // 8MB
+    }
+}
+```
+
+**使用建议**：
+- 大多数场景下，系统默认值（1MB）已经足够
+- 如果遇到 `StackOverflowException`，可以尝试设置为 `8 * 1024 * 1024`（8MB）
+- 在 Compose 场景下，建议使用 8MB 或更大的栈大小
+- 注意：过大的栈大小会占用更多内存，建议根据实际需求设置
 
 其他按需实现适配器示例参考[实现适配器（按需实现部分）](#实现适配器-按需实现部分)
 
@@ -387,5 +419,50 @@ object KRFontAdapter : IKRFontAdapter {
             result(tfe)
         }
     }
+}
+```
+
+## 配置混淆规则（ProGuard/R8）
+
+如果您的 Android 项目开启了代码混淆（ProGuard/R8），需要确保 Kuikly 相关的类不被混淆，以保证框架正常运行。
+
+### 自动应用混淆规则
+
+`core-render-android` 库已经通过 `consumer-rules.pro` 自动提供了必要的混淆规则，这些规则会在您引入依赖时自动应用。规则包括：
+
+- 保留 Kuikly 核心入口类和方法
+- 保留日志相关类
+- 保留 RecyclerView 的反射访问方法
+
+### 手动配置（可选）
+
+如果您需要额外的混淆规则，或者想要查看库提供的规则内容，可以在您的 `app/build.gradle.kts` 或 `app/build.gradle` 中配置：
+
+```gradle
+android {
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+}
+```
+
+然后在 `app/proguard-rules.pro` 文件中添加以下规则（库已自动提供，此处仅作参考）：
+
+```proguard
+# Kuikly 核心类保留规则
+-keep class com.tencent.kuikly.core.android.KuiklyCoreEntry { *; }
+-keep class com.tencent.kuikly.core.IKuiklyCoreEntry { *; }
+-keep class com.tencent.kuikly.core.IKuiklyCoreEntry$Delegate { *; }
+-keep class com.tencent.kuikly.core.log.KLog { *; }
+
+# RecyclerView 反射方法保留
+-keepclassmembers class androidx.recyclerview.widget.RecyclerView {
+    void setScrollState(int);
 }
 ```

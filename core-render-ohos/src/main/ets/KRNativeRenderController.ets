@@ -30,6 +30,8 @@ import { Configuration } from '@ohos.app.ability.Configuration';
 import { KRRenderExecuteModeBase } from './context/KRRenderExecuteModeBase';
 import { KRRenderNativeMode } from './context/KRRenderNativeMode';
 import { i18n } from '@kit.LocalizationKit';
+import { bundleManager } from '@kit.AbilityKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 /** window尺寸变化事件名 */
 export const KRWindowSizeDidChangedEventKey = 'windowSizeDidChanged';
@@ -615,11 +617,22 @@ export class KRNativeRenderController {
       }
       pageData[KRSafeAreaInsets] = this.encodeSafeAreaInsetsString();
     }
+
+    let versionName = "1.0.0"
+    let osFullName = ""
+    try {
+      const bundleInfo = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+      versionName = bundleInfo.versionName;
+      osFullName = deviceInfo.osFullName; // system version
+    }catch (e) {
+      // noop
+    }
+
     pageData[KRDeviceWidthKey] = screenSize.width;
     pageData[KRDeviceHeightKey] = screenSize.height;
-    pageData[KROsVersionKey] = ''; // 系统版本
+    pageData[KROsVersionKey] = osFullName; // 系统版本
     pageData[KRNativeBuild] = 2;
-    pageData[KRAppVersionKey] = '1.0.0';
+    pageData[KRAppVersionKey] = versionName;
     pageData[KRPlatformKey] = 'ohos';
     pageData[KRExecuteMode] = this.executeMode.mode;
     pageData[KRContextCode] = this.contextCode;
@@ -639,8 +652,9 @@ export class KRNativeRenderController {
       'fontWeightScale': this.fontWeightScale,
       'fontSizeScale': this.fontSizeScale,
       'imeMode': this.imeMode ? 1 : 0,
-      "windowId": this.windowId,
-      'fontSizeScaleFollowSystem': this.fontSizeScaleFollowSystem() ? 1 : 0
+      'windowId': this.windowId,
+      'fontSizeScaleFollowSystem': this.fontSizeScaleFollowSystem() ? 1 : 0,
+      'performanceMonitorTypesMask': this.getMonitorTypeMask(),
     };
 
     return JSON.stringify(data);
@@ -700,7 +714,7 @@ export class KRNativeRenderController {
    */
   private getWindowActiveDensity() {
     if (this.windowClass != null) {
-      return this.windowClass.getWindowDensityInfo().customDensity;
+      return this.windowClass.getWindowDensityInfo?.().customDensity ?? display.getDefaultDisplaySync().densityPixels;
     } else {
       return display.getDefaultDisplaySync().densityPixels
     }
@@ -712,6 +726,31 @@ export class KRNativeRenderController {
    */
   fontSizeScaleFollowSystem(): boolean {
     return true
+  }
+
+  /**
+   * 回调启动数据
+   */
+  onGetLaunchData(data: KRRecord): void {
+  }
+
+  /**
+   * 回调性能数据
+   */
+  onGetPerformanceData(data: KRRecord): void {
+  }
+
+  /**
+   * Kuikly框架设置性能监控选项，默认只开启动监控
+   * @return Array<KRMonitorType>: 需要设置的性能监控选项列表
+   */
+  performanceMonitorTypes(): Array<KRMonitorType> {
+    return [KRMonitorType.LAUNCH];
+  }
+
+  private getMonitorTypeMask(): number {
+    const mask = this.performanceMonitorTypes().reduce((acc: KRMonitorType, cur: KRMonitorType) => acc | cur, 0);
+    return mask;
   }
 
 }
@@ -810,4 +849,13 @@ export interface IKuiklyRenderViewLifecycleCallback {
    */
   onFirstFramePaint(): void
 
+}
+
+/**
+ * 性能监控类型
+ */
+export enum KRMonitorType {
+  LAUNCH = 1 << 0,  // 1 启动监控
+  FRAME = 1 << 1,  // 2 FPS监控
+  MEMORY = 1 << 2,  // 4 内存监控
 }

@@ -10,6 +10,22 @@ maven("https://mirrors.tencent.com/nexus/repository/maven-tencent/")
 
 [ohpm](https://ohpm.openharmony.cn/#/cn/detail/@kuikly-open%2Frender)
 
+## [2026-01-06, Version 2.13.0](https://github.com/Tencent-TDS/KuiklyUI/tree/2.13.0)
+### What's Changed
+https://github.com/Tencent-TDS/KuiklyUI/releases/tag/2.13.0
+
+## [2025-12-22, Version 2.12.1](https://github.com/Tencent-TDS/KuiklyUI/tree/2.12.1)
+### What's Changed
+https://github.com/Tencent-TDS/KuiklyUI/releases/tag/2.12.1
+
+## [2025-12-19, Version 2.12.0](https://github.com/Tencent-TDS/KuiklyUI/tree/2.12.0)
+### What's Changed
+https://github.com/Tencent-TDS/KuiklyUI/releases/tag/2.12.0
+
+## [2025-12-08, Version 2.11.0](https://github.com/Tencent-TDS/KuiklyUI/tree/2.11.0)
+### What's Changed
+https://github.com/Tencent-TDS/KuiklyUI/releases/tag/2.11.0
+
 ## [2025-11-28, Version 2.10.0](https://github.com/Tencent-TDS/KuiklyUI/tree/2.10.0)
 ### What's Changed
 https://github.com/Tencent-TDS/KuiklyUI/releases/tag/2.10.0
