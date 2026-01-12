@@ -90,6 +90,7 @@ internal class ComposeAllSample : ComposeContainer() {
     private fun getDemoItems(): List<DemoItem> =
         listOf(
             // 基础组件
+            DemoItem("LazyColumnJankDemo", "LazyColumnJankDemo 组件示例", "LazyColumnJankDemo"),
             DemoItem("Image", "Image 组件示例", "ComposeImageDemo"),
             DemoItem("Text", "Text 组件示例", "TextDemo"),
             DemoItem("Canvas", "Canvas 组件示例", "CanvasDemo"),
