@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -12,6 +13,7 @@ import com.tencent.kuikly.compose.coil3.rememberAsyncImagePainter
 import com.tencent.kuikly.compose.foundation.Image
 import com.tencent.kuikly.compose.foundation.background
 import com.tencent.kuikly.compose.foundation.clickable
+import com.tencent.kuikly.compose.foundation.gestures.detectTapGestures
 import com.tencent.kuikly.compose.foundation.layout.Arrangement
 import com.tencent.kuikly.compose.foundation.layout.Box
 import com.tencent.kuikly.compose.foundation.layout.Column
@@ -31,34 +33,177 @@ import com.tencent.kuikly.compose.resources.painterResource
 import com.tencent.kuikly.compose.setContent
 import com.tencent.kuikly.compose.ui.Alignment
 import com.tencent.kuikly.compose.ui.Modifier
+import com.tencent.kuikly.compose.ui.draw.clip
 import com.tencent.kuikly.compose.ui.geometry.Offset
 import com.tencent.kuikly.compose.ui.geometry.Size
 import com.tencent.kuikly.compose.ui.graphics.Color
+import com.tencent.kuikly.compose.ui.input.pointer.pointerInput
 import com.tencent.kuikly.compose.ui.text.font.FontWeight
 import com.tencent.kuikly.compose.ui.unit.dp
 import com.tencent.kuikly.compose.ui.unit.sp
 import com.tencent.kuikly.core.annotations.Page
 import com.tencent.kuikly.core.datetime.DateTime
+import com.tencent.kuikly.core.log.KLog
 
 @Page("LazyColumnJankDemo")
 internal class LazyColumnJankDemo : ComposeContainer() {
     override fun willInit() {
         super.willInit()
         setContent {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().background(Color.White),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+            var items = remember { mutableStateListOf<String>() }
+            for (i in 0..500) {
+                items.add("$i")
+            }
+            LazyColumn(beyondBoundsItemCount = 5) {
+                items(items.size) { index ->
+                    item("index:$index, value:${items[index]}", Color.Red, index)
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun item(text: String, backgroundColor: Color, index: Int) {
+        var uri by remember { mutableStateOf("https://vfiles.gtimg.cn/wuji_dashboard/xy/starter/844aa82b.png") }
+
+        Column(modifier = Modifier.clickable {
+            KLog.i("KCMPListDemo", "click at index:$index")
+        }) {
+            Text(text, fontSize = 16.sp, color = Color.Black)
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly, // 水平方向剩余空间均匀分配
+                verticalAlignment = Alignment.CenterVertically,  // 垂直方向居中
+                modifier = Modifier.fillMaxWidth(1f).height(100.dp)
             ) {
-                item { BasicUsageDemo() }      // 基础用法
-                item { PropertyDemo() }       // 属性演示
-                item { EventDemo() }          // 事件处理
-                item { DataDrivenDemo() }     // 数据驱动示例
-                item { DynamicDataDemo() }    // 动态数据管理
-                item { MethodCallDemo() }     // 方法调用
-                item { LazyRenderDemo() }     // 懒加载
-                item { NestedScrollDemo() }   // 嵌套滚动
-                item { GestureRenderDemo() } // 手势冲突示例
+                var backgroundColor: Color = Color.Green
+                if (index % 2 == 0) {
+                    backgroundColor = Color.Yellow
+                }
+
+                if (index % 2 == 0) {
+                    // View组件demo
+                    Column(
+                        modifier = Modifier.size(80.dp, 50.dp).background(color = backgroundColor)
+                    ) {
+                        Text("这是KCMView")
+                    }
+                    // Image组件demo
+                    Image(
+                        contentDescription = null,
+                        painter = rememberAsyncImagePainter(uri),
+                        modifier = Modifier.size(50.dp, 50.dp)
+                            // 圆角demo
+                            .clip(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+                    )
+                    Image(
+                        contentDescription = null,
+                        painter = rememberAsyncImagePainter(uri),
+                        modifier = Modifier.size(50.dp, 50.dp)
+                            // 圆角demo
+                            .clip(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+                    )
+                    Image(
+                        contentDescription = null,
+                        painter = rememberAsyncImagePainter(uri),
+                        modifier = Modifier.size(50.dp, 50.dp)
+                            // 圆角demo
+                            .clip(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+                    )
+                } else {
+                    Image(
+                        contentDescription = null,
+                        painter = rememberAsyncImagePainter(uri),
+                        modifier = Modifier.size(50.dp, 50.dp)
+                            // 圆角demo
+                            .clip(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+                    )
+                    Column(
+                        modifier = Modifier.size(80.dp, 50.dp).background(color = backgroundColor)
+                    ) {
+                        Text("这是KCMView")
+                    }
+                    Column(
+                        modifier = Modifier.size(80.dp, 50.dp).background(color = backgroundColor)
+                    ) {
+                        Text("这是KCMView")
+                    }
+                    Column(
+                        modifier = Modifier.size(80.dp, 50.dp).background(color = backgroundColor)
+                    ) {
+                        Text("这是KCMView")
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly, // 水平方向剩余空间均匀分配
+                verticalAlignment = Alignment.CenterVertically,  // 垂直方向居中
+                modifier = Modifier.fillMaxWidth(1f).height(42.dp)
+                    .background(color = Color.Red)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(100.dp, 36.dp).background(color = Color.Yellow)
+                ) {
+                    Text("点击跳转")
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(100.dp, 36.dp).background(color = Color.Yellow)
+                        .clickable {
+                            uri =
+                                "https://wfiles.gtimg.cn/wuji_dashboard/xy/starter/baa91edc.png"
+                        }) {
+                    Text("响应更新")
+                }
+
+                var touchCount by remember { mutableStateOf(0) }
+                var color by remember { mutableStateOf(Color.Blue) }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(150.dp, 36.dp).background(color = Color.Yellow)
+                        .touchListener(onTouchEvent = { type, position ->
+                            when {
+                                type == TouchType.Down -> {
+                                    touchCount++
+                                    color = Color.Red
+                                }
+                            }
+                        })
+                ) {
+                    Text("touch次数$touchCount", color = color)
+                }
+            }
+
+            var doubleTapCount by remember { mutableStateOf(0) }
+            var longPressCount by remember { mutableStateOf(0) }
+            var pressCount by remember { mutableStateOf(0) }
+            var tabCount by remember { mutableStateOf(0) }
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly, // 水平方向剩余空间均匀分配
+                verticalAlignment = Alignment.CenterVertically,  // 垂直方向居中
+                modifier = Modifier.fillMaxWidth(1f).height(60.dp)
+                    .background(color = Color.Red)
+                    .pointerInput(Unit) {
+                        detectTapGestures(onDoubleTap = { offset: Offset ->
+                            doubleTapCount++
+                        }, onLongPress = { offset: Offset ->
+                            longPressCount++
+                        }, onPress = { offset: Offset ->
+                            pressCount++
+                        }, onTap = { offset: Offset ->
+                            tabCount++
+                        })
+                    }) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxWidth(1f).height(36.dp)
+                        .background(color = Color.Yellow)
+                ) {
+                    Text("双击：$doubleTapCount 次 长按：$longPressCount 次 按：$pressCount 次 点击：$tabCount 次")
+                }
             }
         }
     }
@@ -258,7 +403,11 @@ internal class LazyColumnJankDemo : ComposeContainer() {
         val eventColors = listOf(Color(0xFF9C27B0), Color(0xFF673AB7), Color(0xFF3F51B5))
 
         SectionTitle("事件处理")
-        Text("演示轮播组件的所有4种事件回调：页面选中、滚动、状态变化、滚动完成", fontSize = 14.sp, color = Color(0xFF666666))
+        Text(
+            "演示轮播组件的所有4种事件回调：页面选中、滚动、状态变化、滚动完成",
+            fontSize = 14.sp,
+            color = Color(0xFF666666)
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -354,10 +503,26 @@ internal class LazyColumnJankDemo : ComposeContainer() {
         // 模拟数据列表
         val dataList = remember {
             listOf(
-                mapOf("title" to "轮播图1", "color" to Color(0xFFE57373), "desc" to "这是第一张轮播图"),
-                mapOf("title" to "轮播图2", "color" to Color(0xFF81C784), "desc" to "这是第二张轮播图"),
-                mapOf("title" to "轮播图3", "color" to Color(0xFF64B5F6), "desc" to "这是第三张轮播图"),
-                mapOf("title" to "轮播图4", "color" to Color(0xFFFFB74D), "desc" to "这是第四张轮播图")
+                mapOf(
+                    "title" to "轮播图1",
+                    "color" to Color(0xFFE57373),
+                    "desc" to "这是第一张轮播图"
+                ),
+                mapOf(
+                    "title" to "轮播图2",
+                    "color" to Color(0xFF81C784),
+                    "desc" to "这是第二张轮播图"
+                ),
+                mapOf(
+                    "title" to "轮播图3",
+                    "color" to Color(0xFF64B5F6),
+                    "desc" to "这是第三张轮播图"
+                ),
+                mapOf(
+                    "title" to "轮播图4",
+                    "color" to Color(0xFFFFB74D),
+                    "desc" to "这是第四张轮播图"
+                )
             )
         }
 
@@ -439,9 +604,21 @@ internal class LazyColumnJankDemo : ComposeContainer() {
         var dynamicDataList by remember {
             mutableStateOf(
                 listOf(
-                    mapOf("title" to "动态页面 1", "desc" to "可以动态添加", "color" to Color(0xFF9C27B0)),
-                    mapOf("title" to "动态页面 2", "desc" to "可以动态删除", "color" to Color(0xFF673AB7)),
-                    mapOf("title" to "动态页面 3", "desc" to "数据驱动更新", "color" to Color(0xFF3F51B5))
+                    mapOf(
+                        "title" to "动态页面 1",
+                        "desc" to "可以动态添加",
+                        "color" to Color(0xFF9C27B0)
+                    ),
+                    mapOf(
+                        "title" to "动态页面 2",
+                        "desc" to "可以动态删除",
+                        "color" to Color(0xFF673AB7)
+                    ),
+                    mapOf(
+                        "title" to "动态页面 3",
+                        "desc" to "数据驱动更新",
+                        "color" to Color(0xFF3F51B5)
+                    )
                 )
             )
         }
@@ -545,7 +722,8 @@ internal class LazyColumnJankDemo : ComposeContainer() {
                         "color" to Color(0xFF3F51B5)
                     )
                     dynamicDataList = dynamicDataList + newItem
-                    operationMessage = "添加了新页面，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
+                    operationMessage =
+                        "添加了新页面，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
                 }.height(36.dp).width(80.dp)
             ) {
                 Text("添加页面", fontSize = 12.sp, color = Color.White)
@@ -554,7 +732,8 @@ internal class LazyColumnJankDemo : ComposeContainer() {
                 modifier = Modifier.clickable {
                     if (dynamicDataList.isNotEmpty()) {
                         dynamicDataList = dynamicDataList.dropLast(1)
-                        operationMessage = "删除了最后一页，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
+                        operationMessage =
+                            "删除了最后一页，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
                     } else {
                         operationMessage = "没有页面可删除 ${DateTime.currentTimestamp()}"
                     }
@@ -566,10 +745,19 @@ internal class LazyColumnJankDemo : ComposeContainer() {
             Box(
                 modifier = Modifier.clickable {
                     dynamicDataList = listOf(
-                        mapOf("title" to "重置页面 1", "desc" to "数据已重置", "color" to Color(0xFFE91E63)),
-                        mapOf("title" to "重置页面 2", "desc" to "全新内容", "color" to Color(0xFF9C27B0))
+                        mapOf(
+                            "title" to "重置页面 1",
+                            "desc" to "数据已重置",
+                            "color" to Color(0xFFE91E63)
+                        ),
+                        mapOf(
+                            "title" to "重置页面 2",
+                            "desc" to "全新内容",
+                            "color" to Color(0xFF9C27B0)
+                        )
                     )
-                    operationMessage = "数据已重置，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
+                    operationMessage =
+                        "数据已重置，总数: ${dynamicDataList.size} ${DateTime.currentTimestamp()}"
                 }.height(36.dp).width(80.dp)
             ) {
                 Text("重置数据", fontSize = 12.sp, color = Color.White)
@@ -587,7 +775,15 @@ internal class LazyColumnJankDemo : ComposeContainer() {
     private fun MethodCallDemo() {
         var resultMessage by remember { mutableStateOf("") }
         var currentPage by remember { mutableStateOf(0) }
-        val methodColors = remember { listOf(Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFF45B7D1), Color(0xFF96CEB4), Color(0xFFFECEA8)) }
+        val methodColors = remember {
+            listOf(
+                Color(0xFFFF6B6B),
+                Color(0xFF4ECDC4),
+                Color(0xFF45B7D1),
+                Color(0xFF96CEB4),
+                Color(0xFFFECEA8)
+            )
+        }
 
         SectionTitle("方法调用")
         Text("通过组件引用调用原生方法", fontSize = 14.sp, color = Color(0xFF666666))
@@ -698,7 +894,7 @@ internal class LazyColumnJankDemo : ComposeContainer() {
             }
 
             Box(
-                modifier = Modifier.height(36.dp).width(80.dp).clickable{
+                modifier = Modifier.height(36.dp).width(80.dp).clickable {
                     resultMessage = "调用 stopScroll() ${DateTime.currentTimestamp()}"
                 }
             ) {
@@ -710,10 +906,16 @@ internal class LazyColumnJankDemo : ComposeContainer() {
     @Composable
     private fun LazyRenderDemo() {
         var currentPage by remember { mutableStateOf(0) }
-        val methodColors = listOf(Color(0xFF4ECDC4), Color(0xFF45B7D1), Color(0xFF96CEB4), Color(0xFFFECEA8), Color(0xFFFF6B6B))
+        val methodColors = listOf(
+            Color(0xFF4ECDC4),
+            Color(0xFF45B7D1),
+            Color(0xFF96CEB4),
+            Color(0xFFFECEA8),
+            Color(0xFFFF6B6B)
+        )
         val dataList = mutableListOf<String>()
 
-        for (index in 0 .. 500) {
+        for (index in 0..500) {
             dataList.add("第${index + 1}页")
         }
 
@@ -805,23 +1007,29 @@ internal class LazyColumnJankDemo : ComposeContainer() {
         val verticalDataList = remember {
             mutableListOf<Map<String, Any>>().apply {
                 for (i in 0 until 100) {
-                    add(mapOf(
-                        "id" to i,
-                        "title" to "垂直页面 ${i + 1}",
-                        "color" to when(i % 5) {
-                            0 -> Color(0xFFE57373)
-                            1 -> Color(0xFF81C784)
-                            2 -> Color(0xFF64B5F6)
-                            3 -> Color(0xFFFFB74D)
-                            else -> Color(0xFFBA68C8)
-                        }
-                    ))
+                    add(
+                        mapOf(
+                            "id" to i,
+                            "title" to "垂直页面 ${i + 1}",
+                            "color" to when (i % 5) {
+                                0 -> Color(0xFFE57373)
+                                1 -> Color(0xFF81C784)
+                                2 -> Color(0xFF64B5F6)
+                                3 -> Color(0xFFFFB74D)
+                                else -> Color(0xFFBA68C8)
+                            }
+                        )
+                    )
                 }
             }
         }
 
         SectionTitle("嵌套滚动（外层垂直 + 内层水平）")
-        Text("外层上下滑动，内层左右切换，测试大数据列表和懒加载", fontSize = 14.sp, color = Color(0xFF666666))
+        Text(
+            "外层上下滑动，内层左右切换，测试大数据列表和懒加载",
+            fontSize = 14.sp,
+            color = Color(0xFF666666)
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -925,6 +1133,7 @@ internal class LazyColumnJankDemo : ComposeContainer() {
                 offset
             }
         }
+
         fun calculateBoundedOffset(
             currentOffset: Offset,
             currentScale: Float
@@ -958,10 +1167,16 @@ internal class LazyColumnJankDemo : ComposeContainer() {
             return boundedOffset
         }
 
-        val methodColors = listOf(Color(0xFF4ECDC4), Color(0xFF45B7D1), Color(0xFF96CEB4), Color(0xFFFECEA8), Color(0xFFFF6B6B))
+        val methodColors = listOf(
+            Color(0xFF4ECDC4),
+            Color(0xFF45B7D1),
+            Color(0xFF96CEB4),
+            Color(0xFFFECEA8),
+            Color(0xFFFF6B6B)
+        )
         val dataList = mutableListOf<String>()
 
-        for (index in 0 .. 500) {
+        for (index in 0..500) {
             dataList.add("第${index + 1}页")
         }
 
@@ -1058,7 +1273,9 @@ internal class LazyColumnJankDemo : ComposeContainer() {
             Text(
                 text = if (panGestureConsumedByNative.value) "图片未缩放，手势由native消费" else "图片缩放，手势由compose消费",
                 fontSize = 14.sp,
-                color = if (panGestureConsumedByNative.value) Color(0xFF4CAF50) else Color(0xFFFF9800)
+                color = if (panGestureConsumedByNative.value) Color(0xFF4CAF50) else Color(
+                    0xFFFF9800
+                )
             )
         }
 
