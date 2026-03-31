@@ -26,7 +26,10 @@
 #include "libohos_render/expand/components/image/KRImageViewWrapper.h"
 #include "libohos_render/expand/components/input/KRTextAreaView.h"
 #include "libohos_render/expand/components/input/KRTextFieldView.h"
+#include "libohos_render/expand/components/list/KRListView.h"
+#include "libohos_render/expand/components/list/KRSyncSwiper.h"
 #include "libohos_render/expand/components/modal/KRModalView.h"
+#include "libohos_render/expand/components/refresh/KRPullRefreshView.h"
 #include "libohos_render/expand/components/richtext/KRRichTextShadow.h"
 #include "libohos_render/expand/components/richtext/KRRichTextView.h"
 #include "libohos_render/expand/components/richtext/gradient_richtext/KRGradientRichTextShadow.h"
@@ -61,10 +64,12 @@ static void ComponentsRegisterEntry() {
     IKRRenderShadowExport::RegisterShadowCreator("KRGradientRichTextView",
                                                  [] { return std::make_shared<KRGradientRichTextShadow>(); });
 
-    IKRRenderViewExport::RegisterViewCreator("KRListView", [] { return std::make_shared<KRScrollerView>(); });
+    IKRRenderViewExport::RegisterViewCreator("KRListView", [] { return std::make_shared<KRListView>(); });
     IKRRenderViewExport::RegisterViewCreator("KRScrollView", [] { return std::make_shared<KRScrollerView>(); });
     IKRRenderViewExport::RegisterViewCreator("KRScrollContentView",
                                              [] { return std::make_shared<KRScrollerContentView>(); });
+    IKRRenderViewExport::RegisterViewCreator("KRSyncSwiper", [] { return std::make_shared<KRSyncSwiper>(); });
+    IKRRenderViewExport::RegisterViewCreator("KRPullRefreshView", [] { return std::make_shared<KRPullRefreshView>(); });
     // single line - text input (单行输入框)
     IKRRenderViewExport::RegisterViewCreator("KRTextFieldView", [] { return std::make_shared<KRTextFieldView>(); });
 

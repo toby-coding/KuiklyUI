@@ -70,6 +70,18 @@ class IKRRenderViewExport : public std::enable_shared_from_this<IKRRenderViewExp
 
         DidInit();
     }
+    
+    /*
+    * 如果当前为PullRefresh组件的Content，默认支持下拉刷新
+    */
+    virtual bool CanPullRefresh() {
+        return true;
+    }
+
+    /*
+    * 如果当前为PullRefresh组件的Content，可以重新实现该方法
+    */
+    virtual void updateContentOffsetFromParent(float offset) { }
 
     /**
      * UI节点事件回调
